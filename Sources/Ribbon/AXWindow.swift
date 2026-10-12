@@ -47,9 +47,19 @@ final class AXWindow: Hashable, CustomStringConvertible {
         // Size, position, size: the first resize lets the move succeed when
         // the old size wouldn't fit at the new spot; the second applies the
         // final size if the app clamped the first one.
-        element.setAXValue(kAXSizeAttribute, r.size, .cgSize)
-        element.setAXValue(kAXPositionAttribute, r.origin, .cgPoint)
-        element.setAXValue(kAXSizeAttribute, r.size, .cgSize)
+        setSize(r.size)
+        setPosition(r.origin)
+        setSize(r.size)
+    }
+
+    func setPosition(_ p: CGPoint) {
+        let err = element.setAXValue(kAXPositionAttribute, p, .cgPoint)
+        if err != .success { Log.write("move failed (AXError \(err.rawValue)): \(self)") }
+    }
+
+    func setSize(_ s: CGSize) {
+        let err = element.setAXValue(kAXSizeAttribute, s, .cgSize)
+        if err != .success { Log.write("resize failed (AXError \(err.rawValue)): \(self)") }
     }
 
     func focus() {
@@ -90,8 +100,9 @@ extension AXUIElement {
         return AXValueGetValue(value as! AXValue, type, ptr) ? ptr.pointee : nil
     }
 
-    func setAXValue<T>(_ name: String, _ v: T, _ type: AXValueType) {
-        guard let value = withUnsafePointer(to: v, { AXValueCreate(type, $0) }) else { return }
-        AXUIElementSetAttributeValue(self, name as CFString, value)
+    @discardableResult
+    func setAXValue<T>(_ name: String, _ v: T, _ type: AXValueType) -> AXError {
+        guard let value = withUnsafePointer(to: v, { AXValueCreate(type, $0) }) else { return .failure }
+        return AXUIElementSetAttributeValue(self, name as CFString, value)
     }
 }

@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var started = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Log.start()
+        Log.write("Ribbon launched from \(Bundle.main.bundlePath); accessibility trusted: \(AXIsProcessTrusted())")
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.image = NSImage(systemSymbolName: "rectangle.split.3x1", accessibilityDescription: "Ribbon")
         manager.onStateChange = { [weak self] in self?.rebuildMenu() }
@@ -69,12 +71,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func startManaging() {
         guard !started else { return }
         started = true
+        Log.write("accessibility granted, starting")
+        var registered = 0
         for shortcut in shortcuts {
-            hotKeys.register(shortcut.keyCode, shortcut.modifiers) { [weak self] in
+            let ok = hotKeys.register(shortcut.keyCode, shortcut.modifiers) { [weak self] in
                 guard let self else { return }
+                Log.write("key pressed: \(shortcut.name.isEmpty ? "key \(shortcut.keyCode)" : shortcut.name)")
                 shortcut.action(manager)
             }
+            if ok { registered += 1 } else { Log.write("shortcut NOT registered (taken?): key \(shortcut.keyCode) mods \(shortcut.modifiers)") }
         }
+        Log.write("\(registered)/\(shortcuts.count) shortcuts registered")
         manager.start()
         rebuildMenu()
     }
