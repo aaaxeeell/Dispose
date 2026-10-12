@@ -61,6 +61,14 @@ final class WindowMover {
     }
 
     private func drain(_ pid: pid_t) {
+        // With AXEnhancedUserInterface on (some apps enable it for assistive
+        // tools), every move is animated by the app and slow. Turn it off for
+        // this burst of moves and restore it once the queue is idle.
+        let app = AXUIElementCreateApplication(pid)
+        let enhanced = app.attribute("AXEnhancedUserInterface") as Bool? == true
+        if enhanced { AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanFalse) }
+        defer { if enhanced { AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue) } }
+
         while true {
             lock.lock()
             let batch = pending.filter { $0.key.pid == pid }

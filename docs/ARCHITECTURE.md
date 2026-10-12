@@ -62,7 +62,7 @@ of the primary display and y growing downwards. `Screen.viewport()` converts
 ## Animation
 
 Each moving window has a critically damped spring: position, velocity and
-target, integrated at 120 Hz (`omega = 26`, which settles in about 0.25 s).
+target, integrated at 120 Hz (`omega = 20`, which settles in about 0.3 s).
 A new command only changes the target. Velocity is kept, so pressing keys
 quickly redirects windows smoothly instead of restarting the motion.
 

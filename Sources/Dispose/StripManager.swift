@@ -15,12 +15,16 @@ final class StripManager {
     /// Where each window is (or is heading this frame), as last sent.
     private var applied: [AXWindow: CGRect] = [:]
     private var lastFocusRequest: (AXWindow, CFTimeInterval)?
+    /// The most recently focused window of each app, to predict which one
+    /// an app will focus when it's activated from the Dock or Cmd-Tab.
+    private var lastFocused: [pid_t: AXWindow] = [:]
 
     func start() {
         tracker.start()
         tracker.onAppeared = { [weak self] in self?.windowAppeared($0) }
         tracker.onDisappeared = { [weak self] in self?.windowDisappeared($0) }
         tracker.onFocused = { [weak self] in self?.windowFocused($0) }
+        tracker.onAppActivated = { [weak self] in self?.appActivated($0) }
         tracker.onAppTerminated = { [weak self] pid in
             guard let self else { return }
             for id in strip.ids where id.pid == pid { windowDisappeared(id) }
@@ -116,6 +120,17 @@ final class StripManager {
         onStateChange?()
     }
 
+    /// Starts scrolling to the app's last-used window right away. Asking the
+    /// app which window is focused can take hundreds of ms while it activates;
+    /// that answer still arrives via `windowFocused` and corrects us if needed.
+    private func appActivated(_ pid: pid_t) {
+        guard !isPaused, strip.focusedID?.pid != pid else { return }
+        if let (_, time) = lastFocusRequest, CACurrentMediaTime() - time < 0.5 { return }
+        guard let window = lastFocused[pid] ?? strip.ids.first(where: { $0.pid == pid }) else { return }
+        strip.focus(window)
+        layout()
+    }
+
     private func windowFocused(_ window: AXWindow) {
         if strip.contains(window) {
             // Our own focus commands echo back here (often twice); skip those.
@@ -127,7 +142,9 @@ final class StripManager {
             strip.focus(window)
             layout()
         } else {
-            windowAppeared(window)
+            tracker.checkManageable(window) { [weak self] ok in
+                if ok { self?.windowAppeared(window) }
+            }
         }
     }
 
@@ -137,6 +154,7 @@ final class StripManager {
         guard !isPaused else { return }
         let viewport = Screen.viewport()
         strip.revealFocused(viewportWidth: viewport.width)
+        if let focused = strip.focusedID { lastFocused[focused.pid] = focused }
         for placement in strip.frames(in: viewport) {
             let window = placement.id
             var target = placement.frame
@@ -171,6 +189,7 @@ final class StripManager {
             applied[window] = CGRect(origin: motion.position, size: target.size)
         }
         motions = motions.filter { strip.contains($0.key) }
+        lastFocused = lastFocused.filter { strip.contains($0.value) }
         startTimerIfNeeded()
     }
 
@@ -186,8 +205,8 @@ final class StripManager {
         var sent: CGPoint?
     }
 
-    /// Spring stiffness: higher is snappier. ~26 settles in about 0.25 s.
-    private static let omega: CGFloat = 26
+    /// Spring stiffness: higher is snappier. 20 settles in about 0.3 s.
+    private static let omega: CGFloat = 20
     private let mover = WindowMover()
     private var motions: [AXWindow: Motion] = [:]
     private var timer: Timer?
@@ -203,6 +222,9 @@ final class StripManager {
 
     private func tick() {
         let now = CACurrentMediaTime()
+        if now - lastTick > 0.05 {
+            Log.write(String(format: "animation stalled %.0f ms (main thread busy)", (now - lastTick) * 1000))
+        }
         // Clamp the step so a stalled frame can't make the spring jump.
         let dt = CGFloat(min(now - lastTick, 1.0 / 30))
         lastTick = now
@@ -219,9 +241,10 @@ final class StripManager {
                 && abs(m.velocity.dx) < 20 && abs(m.velocity.dy) < 20
             if settled {
                 motions[window] = nil
-                let final = CGRect(origin: m.target, size: m.size)
-                mover.setFrame(window, final)
-                applied[window] = final
+                // Position only: the size was set when the move began, and
+                // re-sending it makes apps like Terminal re-layout (slow).
+                mover.setPosition(window, m.target)
+                applied[window] = CGRect(origin: m.target, size: m.size)
                 continue
             }
             let rounded = CGPoint(x: m.position.x.rounded(), y: m.position.y.rounded())

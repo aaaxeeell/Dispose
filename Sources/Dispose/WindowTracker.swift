@@ -8,8 +8,15 @@ final class WindowTracker {
     var onDisappeared: ((AXWindow) -> Void)?
     var onFocused: ((AXWindow) -> Void)?
     var onAppTerminated: ((pid_t) -> Void)?
+    /// Fires as soon as an app becomes frontmost, before its focused window
+    /// is known, so the strip can start moving without waiting on the app.
+    var onAppActivated: ((pid_t) -> Void)?
 
     private var observers: [pid_t: AXObserver] = [:]
+    /// AX queries go here, off the main thread: an app that is busy (say,
+    /// activating after a Dock click) can take hundreds of ms to answer,
+    /// which would freeze animation if asked on the main thread.
+    private let axQueue = DispatchQueue(label: "dispose.tracker", qos: .userInitiated)
     private let ownPID = ProcessInfo.processInfo.processIdentifier
 
     func start() {
@@ -31,8 +38,12 @@ final class WindowTracker {
         // Switching apps (Cmd-Tab, Dock click) doesn't fire the per-app
         // focused-window notification, so read the new app's window here.
         nc.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
-            guard let pid = n.runningApp?.processIdentifier, let window = self?.focusedWindow(of: pid) else { return }
-            self?.onFocused?(window)
+            guard let self, let pid = n.runningApp?.processIdentifier, pid != ownPID else { return }
+            onAppActivated?(pid)
+            axQueue.async {
+                guard let element = AXUIElementCreateApplication(pid).element(kAXFocusedWindowAttribute) else { return }
+                DispatchQueue.main.async { self.onFocused?(AXWindow(element)) }
+            }
         }
     }
 
@@ -41,6 +52,14 @@ final class WindowTracker {
         NSWorkspace.shared.runningApplications
             .filter { $0.activationPolicy == .regular && $0.processIdentifier != ownPID }
             .flatMap { windows(of: $0.processIdentifier) }
+    }
+
+    /// Checks `isManageable` off the main thread; calls back on main.
+    func checkManageable(_ window: AXWindow, _ completion: @escaping (Bool) -> Void) {
+        axQueue.async {
+            let ok = window.isManageable
+            DispatchQueue.main.async { completion(ok) }
+        }
     }
 
     func focusedWindow() -> AXWindow? {
@@ -104,17 +123,19 @@ final class WindowTracker {
         switch notification {
         case kAXWindowCreatedNotification, kAXWindowDeminiaturizedNotification:
             // New windows often get their subrole and size a moment later.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-                let window = AXWindow(element)
+            let window = AXWindow(element)
+            axQueue.asyncAfter(deadline: .now() + 0.15) { [weak self] in
                 guard window.isManageable else { return }
-                self?.watchDestruction(of: window)
-                self?.onAppeared?(window)
+                DispatchQueue.main.async {
+                    self?.watchDestruction(of: window)
+                    self?.onAppeared?(window)
+                }
             }
         case kAXUIElementDestroyedNotification, kAXWindowMiniaturizedNotification:
             onDisappeared?(AXWindow(element))
         case kAXFocusedWindowChangedNotification:
-            let window = AXWindow(element)
-            if window.isManageable { onFocused?(window) }
+            // Not checked here: the manager only queries unknown windows.
+            onFocused?(AXWindow(element))
         default:
             break
         }
