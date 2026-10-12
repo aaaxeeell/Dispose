@@ -6,6 +6,11 @@ All notable changes to Dispose are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-12
+
+### Added
+- Downloadable release build (`scripts/package-release.sh`).
+
 ### Changed
 - Switching apps from the Dock or Cmd-Tab now starts scrolling right away to
   the app's last-used window, instead of waiting up to ~0.5 s for the app to

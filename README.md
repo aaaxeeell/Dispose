@@ -21,7 +21,7 @@ The idea comes from [PaperWM](https://github.com/paperwm/PaperWM) and
 [niri](https://github.com/YaLTeR/niri) on Linux. Dispose is a native macOS app
 written in Swift.
 
-> **Status:** early preview (v0.2). It works day to day on a single display;
+> **Status:** early preview (v0.3). It works day to day on a single display;
 > see the [roadmap](#roadmap) for what's coming.
 
 ## Features
@@ -48,8 +48,25 @@ written in Swift.
 
 ## Installation
 
-Dispose is built from source. You need Apple's Command Line Tools, but not
-Xcode:
+### Download (easiest)
+
+1. Download **Dispose-x.y.z.zip** from the
+   [latest release](https://github.com/aaaxeeell/Dispose/releases/latest).
+2. Unzip it and drag **Dispose.app** to your **Applications** folder.
+3. Open Dispose. Because it isn't notarized by Apple yet, macOS blocks it
+   the first time:
+   - **macOS 15 Sequoia and later:** click **Done** in the warning, open
+     *System Settings → Privacy & Security*, scroll down and click
+     **Open Anyway** next to the Dispose message, then confirm.
+   - **macOS 13–14:** right-click (or Control-click) Dispose.app, choose
+     **Open**, then click **Open** in the dialog.
+
+   You only have to do this once. If you prefer Terminal:
+   `xattr -dr com.apple.quarantine /Applications/Dispose.app`
+
+### Build from source
+
+You need Apple's Command Line Tools, but not Xcode:
 
 ```sh
 xcode-select --install          # skip if already installed
@@ -75,7 +92,7 @@ first launch, macOS asks for permission:
 Dispose starts arranging windows about a second after you turn it on. You don't
 need to relaunch it.
 
-### Why the signing script?
+### Why the signing script? (building from source)
 
 macOS remembers the Accessibility permission per app *signature*. An unsigned
 (ad-hoc) build gets a new signature every time it's rebuilt, so macOS forgets
@@ -146,7 +163,7 @@ For the details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - [ ] Floating windows and per-app rules
 - [ ] Settings window: gaps, animation speed, rebindable shortcuts
 - [ ] Launch at login
-- [ ] Signed and notarized releases
+- [ ] Notarized releases (no Gatekeeper warning)
 
 ## Contributing
 
