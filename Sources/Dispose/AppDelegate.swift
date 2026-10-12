@@ -45,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKeys = HotKeyCenter()
     private var statusItem: NSStatusItem!
     private var started = false
+    private var signalSources: [DispatchSourceSignal] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.start()
@@ -52,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.image = NSImage(systemSymbolName: "rectangle.split.3x1", accessibilityDescription: "Dispose")
         manager.onStateChange = { [weak self] in self?.rebuildMenu() }
+        quitCleanlyOnSignals()
         rebuildMenu()
 
         let prompt = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
@@ -59,7 +61,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        if started { manager.releaseWindows() }
+        if started {
+            manager.releaseWindows()
+            Log.write("released windows, quitting")
+        }
+    }
+
+    /// `kill`, `pkill` and logout send SIGTERM, which would otherwise exit
+    /// immediately and leave parked windows stranded off-screen. Route them
+    /// through a normal quit so applicationWillTerminate releases windows.
+    private func quitCleanlyOnSignals() {
+        for sig in [SIGTERM, SIGINT, SIGHUP] {
+            signal(sig, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: sig, queue: .main)
+            source.setEventHandler {
+                Log.write("received signal \(sig), quitting")
+                NSApp.terminate(nil)
+            }
+            source.resume()
+            signalSources.append(source)
+        }
     }
 
     private func waitForAccessibility() {

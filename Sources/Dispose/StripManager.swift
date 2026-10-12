@@ -69,16 +69,19 @@ final class StripManager {
     }
 
     /// Brings every parked (off-screen) window back into view so nothing is
-    /// lost when Dispose pauses or quits.
+    /// lost when Dispose pauses or quits. Synchronous, so it finishes even
+    /// when the app is about to exit.
     func releaseWindows() {
         stopAnimation()
+        mover.cancelAndWait()
         let viewport = Screen.viewport()
-        for placement in strip.frames(in: viewport) where !placement.isOnScreen {
-            let size = placement.frame.size
-            mover.setFrame(placement.id, CGRect(
-                x: viewport.midX - size.width / 2,
+        for placement in strip.frames(in: viewport) {
+            let window = placement.id
+            guard let frame = window.frame, !frame.intersects(viewport.insetBy(dx: 40, dy: 0)) else { continue }
+            window.setFrame(CGRect(
+                x: viewport.midX - frame.width / 2,
                 y: viewport.minY + strip.gap,
-                width: size.width, height: size.height))
+                width: frame.width, height: frame.height))
         }
         applied.removeAll()
     }

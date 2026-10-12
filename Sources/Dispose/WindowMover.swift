@@ -38,6 +38,17 @@ final class WindowMover {
         enqueue(window) { $0.focus = true }
     }
 
+    /// Drops queued updates and waits for in-flight ones to finish, so the
+    /// caller can then move windows directly without a stale update landing
+    /// afterwards.
+    func cancelAndWait() {
+        lock.lock()
+        pending.removeAll()
+        let all = Array(queues.values)
+        lock.unlock()
+        for queue in all { queue.sync {} }
+    }
+
     private func enqueue(_ window: AXWindow, _ change: (inout Pending) -> Void) {
         let pid = window.pid
         lock.lock()

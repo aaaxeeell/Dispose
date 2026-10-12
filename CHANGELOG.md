@@ -6,6 +6,11 @@ All notable changes to Dispose are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Windows could be left stranded off-screen when Dispose quit: off-screen
+  windows are now brought back before the app exits, and `kill`, `pkill`
+  and logout go through the same clean quit.
+
 ## [0.2.0] - 2026-10-12
 
 ### Added
