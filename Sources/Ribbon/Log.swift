@@ -6,6 +6,7 @@ enum Log {
     static let url = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Logs/Ribbon.log")
     private static var handle: FileHandle?
+    private static let lock = NSLock()
     private static let time: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm:ss.SSS"
@@ -18,6 +19,8 @@ enum Log {
     }
 
     static func write(_ message: String) {
+        lock.lock()
+        defer { lock.unlock() }
         let line = "\(time.string(from: Date())) \(message)\n"
         handle?.write(line.data(using: .utf8)!)
     }
