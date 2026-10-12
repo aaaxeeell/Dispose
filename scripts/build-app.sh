@@ -1,19 +1,19 @@
 #!/bin/bash
-# Builds build/Ribbon.app (Apple silicon). No Xcode needed.
-# Signs with "Ribbon Local Signing" if present (see setup-signing.sh),
+# Builds build/Dispose.app (Apple silicon). No Xcode needed.
+# Signs with "Dispose Local Signing" if present (see setup-signing.sh),
 # otherwise ad-hoc.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/env.sh
 
-APP=build/Ribbon.app
+APP=build/Dispose.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-swiftc -O -target arm64-apple-macos13.0 -module-name Ribbon \
-  Sources/RibbonCore/*.swift Sources/Ribbon/*.swift \
-  -o "$APP/Contents/MacOS/Ribbon"
+swiftc -O -target arm64-apple-macos13.0 -module-name Dispose \
+  Sources/DisposeCore/*.swift Sources/Dispose/*.swift \
+  -o "$APP/Contents/MacOS/Dispose"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-IDENTITY="Ribbon Local Signing"
+IDENTITY="Dispose Local Signing"
 if security find-certificate -c "$IDENTITY" >/dev/null 2>&1; then
   codesign --force --sign "$IDENTITY" "$APP"
 else

@@ -48,9 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Log.start()
-        Log.write("Ribbon launched from \(Bundle.main.bundlePath); accessibility trusted: \(AXIsProcessTrusted())")
+        Log.write("Dispose launched from \(Bundle.main.bundlePath); accessibility trusted: \(AXIsProcessTrusted())")
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.split.3x1", accessibilityDescription: "Ribbon")
+        statusItem.button?.image = NSImage(systemSymbolName: "rectangle.split.3x1", accessibilityDescription: "Dispose")
         manager.onStateChange = { [weak self] in self?.rebuildMenu() }
         rebuildMenu()
 
@@ -110,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         help.submenu = helpMenu
         menu.addItem(help)
         menu.addItem(.separator())
-        menu.addItem(item("Quit Ribbon", #selector(quit), key: "q"))
+        menu.addItem(item("Quit Dispose", #selector(quit), key: "q"))
         statusItem.menu = menu
     }
 

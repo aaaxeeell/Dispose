@@ -4,12 +4,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "Ribbon",
+    name: "Dispose",
     platforms: [.macOS(.v13)],
     targets: [
         // Pure layout model, no AppKit.
-        .target(name: "RibbonCore"),
+        .target(name: "DisposeCore"),
         // The menu-bar app: Accessibility, hotkeys, window tracking.
-        .executableTarget(name: "Ribbon", dependencies: ["RibbonCore"]),
+        .executableTarget(name: "Dispose", dependencies: ["DisposeCore"]),
     ]
 )

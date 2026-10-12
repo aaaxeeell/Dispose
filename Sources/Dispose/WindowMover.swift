@@ -43,7 +43,7 @@ final class WindowMover {
         lock.lock()
         change(&pending[window, default: Pending()])
         let idle = busy.insert(pid).inserted
-        let queue = queues[pid] ?? DispatchQueue(label: "ribbon.mover.\(pid)", qos: .userInteractive)
+        let queue = queues[pid] ?? DispatchQueue(label: "dispose.mover.\(pid)", qos: .userInteractive)
         queues[pid] = queue
         lock.unlock()
         if idle { queue.async { self.drain(pid) } }

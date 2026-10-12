@@ -27,11 +27,11 @@ final class HotKeyCenter {
         let id = nextID
         nextID += 1
         var ref: EventHotKeyRef?
-        let hotKeyID = EventHotKeyID(signature: OSType(0x5242_4E4E) /* "RBNN" */, id: id)
+        let hotKeyID = EventHotKeyID(signature: OSType(0x4453_5053) /* "DSPS" */, id: id)
         guard RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers), hotKeyID,
                                   GetApplicationEventTarget(), 0, &ref) == noErr, let ref
         else {
-            NSLog("Ribbon: shortcut key %d mods %d is taken by another app", keyCode, modifiers)
+            NSLog("Dispose: shortcut key %d mods %d is taken by another app", keyCode, modifiers)
             return false
         }
         refs.append(ref)

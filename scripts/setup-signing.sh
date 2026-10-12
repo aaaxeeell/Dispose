@@ -1,9 +1,9 @@
 #!/bin/bash
-# One-time: creates a self-signed "Ribbon Local Signing" certificate in the
+# One-time: creates a self-signed "Dispose Local Signing" certificate in the
 # login keychain. Builds signed with it keep the same identity, so macOS
 # remembers the Accessibility permission across rebuilds (ad-hoc builds don't).
 set -euo pipefail
-NAME="Ribbon Local Signing"
+NAME="Dispose Local Signing"
 if security find-certificate -c "$NAME" >/dev/null 2>&1; then
   echo "\"$NAME\" already exists."; exit 0
 fi

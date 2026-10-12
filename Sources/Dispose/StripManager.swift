@@ -1,6 +1,6 @@
 import AppKit
-#if canImport(RibbonCore)
-import RibbonCore
+#if canImport(DisposeCore)
+import DisposeCore
 #endif
 
 /// Keeps the real windows in sync with the `Strip` model: reacts to windows
@@ -69,7 +69,7 @@ final class StripManager {
     }
 
     /// Brings every parked (off-screen) window back into view so nothing is
-    /// lost when Ribbon pauses or quits.
+    /// lost when Dispose pauses or quits.
     func releaseWindows() {
         stopAnimation()
         let viewport = Screen.viewport()
